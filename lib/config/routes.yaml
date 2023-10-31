@@ -1,4 +1,0 @@
-apiKey: # your primary key
-apiKey2: # your secondary key
-wsUrl: wss://ws.finnhub.io
-baseUrl: https://finnhub.io/api/v1

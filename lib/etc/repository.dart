@@ -1,22 +1,29 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:candlesticks/candlesticks.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:yaml/yaml.dart';
 import 'package:http/http.dart' as http;
 
-class Repository{
-  var _yaml = loadYaml(File('config/routes.yaml').readAsStringSync());
+import 'package:stock_dashboard_flutter/config/routes.dart';
+
+class Repository {
+  Repository._privateConstructor();
+  static final Repository _singleton = Repository._privateConstructor();
+  factory Repository() {
+    return _singleton;
+  }
 
   WebSocketChannel establishConnection(List<String> symbols) {
-    final wsUrl = Uri.parse(_yaml['wsUrl']);
+    final wsUrl = Uri.parse(properties['wsUrl'] + '?token=' + properties['apiKey']);
     var channel = WebSocketChannel.connect(wsUrl);
 
     for (var symbol in symbols) {
       channel.sink.add(
         jsonEncode(
-          {"type":"subscribe", "symbol": symbol,},
+          {
+            "type": "subscribe",
+            "symbol": symbol,
+          },
         ),
       );
     }
@@ -24,9 +31,12 @@ class Repository{
   }
 
   Future<List<Candle>> fetchHistory(String symbols, String resolution, int? from, int? to) {
-    final stringUrl = _yaml['baseUrl'] + '/stock/candle?symbol=$symbols&resolution=$resolution' +
+    final stringUrl = properties['baseUrl'] +
+        '/stock/candle?symbol=$symbols&resolution=$resolution' +
         (from != null ? '&from=$from' : '') +
-        (to != null ? '&to=$to' : '');
+        (to != null ? '&to=$to' : '') +
+        '&token=' +
+        properties['apiKey'];
     final url = Uri.parse(stringUrl);
     final res = http.get(url);
     final candleList = res.then((value) {
@@ -43,13 +53,12 @@ class Repository{
       final volume = decodedJson['v'] as List<int>;
       for (var i = 0; i < timestamp.length; i++) {
         candles.add(Candle(
-          date: DateTime.fromMillisecondsSinceEpoch(timestamp[i] * 1000),
-          high: high[i],
-          low: low[i],
-          open: open[i],
-          close: close[i],
-          volume: volume[i].toDouble()
-        ));
+            date: DateTime.fromMillisecondsSinceEpoch(timestamp[i] * 1000),
+            high: high[i],
+            low: low[i],
+            open: open[i],
+            close: close[i],
+            volume: volume[i].toDouble()));
       }
       return candles;
     });
